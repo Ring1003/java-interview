@@ -1,0 +1,112 @@
+[
+  {
+    "id": "redis-1",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 的数据结构和应用场景？",
+    "answer": "5种基本结构：\n- String：缓存、计数器、分布式锁\n- Hash：对象存储、购物车\n- List：消息队列、关注列表\n- Set：去重、共同关注、抽奖\n- ZSet：排行榜、延时队列\n\n高级结构：HyperLogLog、Geo、Stream、Bitmap",
+    "tags": "数据结构",
+    "sort_order": 1
+  },
+  {
+    "id": "redis-1-1",
+    "category": "redis",
+    "level": 1,
+    "parent_id": "redis-1",
+    "title": "Redis ZSet 为什么使用跳表？",
+    "answer": "1. 查找效率高：O(logN)\n2. 实现简单，比红黑树容易实现\n3. 内存占用合理\n4. 范围查询高效（有序链表遍历）",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "redis-2",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 持久化机制？",
+    "answer": "RDB：\n- 定时保存数据快照\n- 文件小，恢复快\n- 可能丢失数据\n\nAOF：\n- 记录每个写操作\n- 数据安全，实时持久化\n- 文件大，恢复慢\n\n混合持久化：RDB+AOF（推荐）",
+    "tags": "持久化",
+    "sort_order": 2
+  },
+  {
+    "id": "redis-3",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "缓存穿透、缓存击穿、缓存雪崩？",
+    "answer": "穿透：查询不存在的key\n- 解决：布隆过滤器、缓存空值\n\n击穿：热点key过期瞬间大量请求\n- 解决：加锁重建、不设置过期时间\n\n雪崩：大量key同时过期\n- 解决：过期时间随机、多级缓存",
+    "tags": "缓存问题",
+    "sort_order": 3
+  },
+  {
+    "id": "redis-4",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 分布式锁的实现？",
+    "answer": "基本实现：SET key value NX PX timeout\n\n问题：\n- 锁过期时间不好估算\n- B释放了A的锁\n\nRedisson解决方案：\n- 看门狗自动续期\n- Lua脚本确保原子性\n- Redlock集群锁",
+    "tags": "分布式锁",
+    "sort_order": 4
+  },
+  {
+    "id": "redis-5",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 集群模式？",
+    "answer": "主从复制：读写分离，主写从读\n哨兵模式：监控、自动故障转移\nCluster：分片集群，槽位分配，自动迁移\n\nCluster特点：\n- 16384个槽位\n- 无中心节点\n- 自动分片",
+    "tags": "集群",
+    "sort_order": 5
+  },
+  {
+    "id": "redis-6",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 内存淘汰策略？",
+    "answer": "volatile：淘汰设置了过期时间的key\n- volatile-lru\n- volatile-lfu\n- volatile-ttl\n- volatile-random\n\nallkeys：淘汰所有key\n- allkeys-lru\n- allkeys-lfu\n- allkeys-random\n\nnoeviction：不淘汰（默认）",
+    "tags": "",
+    "sort_order": 6
+  },
+  {
+    "id": "redis-7",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 为什么快？",
+    "answer": "1. 基于内存：无磁盘IO开销\n2. 单线程：无锁竞争、无上下文切换\n3. IO多路复用：epoll\n4. 高效数据结构：跳表、压缩列表\n\nRedis 6.0引入多线程处理网络IO，核心仍是单线程",
+    "tags": "",
+    "sort_order": 7
+  },
+  {
+    "id": "redis-8",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 事务机制？",
+    "answer": "通过MULTI、EXEC、WATCH实现。\n\n特点：\n- 批量命令顺序执行\n- 无隔离级别（执行过程其他命令可插入）\n- 不支持回滚（有错误继续执行）\n\nWATCH：乐观锁，检查key是否被修改",
+    "tags": "事务",
+    "sort_order": 8
+  },
+  {
+    "id": "redis-9",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 和 Memcached 的区别？",
+    "answer": "数据类型：Redis 5种，Memcached仅String\n持久化：Redis支持，Memcached不支持\n集群：Redis原生支持，Memcached需客户端分片\n线程模型：Redis单线程（6.0多线程IO），Memcached多线程\n消息队列：Redis支持，Memcached不支持",
+    "tags": "",
+    "sort_order": 9
+  },
+  {
+    "id": "redis-10",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 的大Key问题？",
+    "answer": "问题：\n- 内存分配消耗大\n- IO阻塞（大value读取）\n- 集群迁移慢\n\n解决：\n- 拆分大Key（如Hash拆分）\n- 使用压缩（压缩算法或数据结构）\n- 避免存储大对象",
+    "tags": "",
+    "sort_order": 10
+  }
+]

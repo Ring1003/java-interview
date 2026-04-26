@@ -1,0 +1,152 @@
+[
+  {
+    "id": "mysql-1",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 索引的原理（B+树）？",
+    "answer": "B+树特点：\n1. 非叶子节点只存储键值，不存储数据\n2. 叶子节点存储所有数据，形成链表\n3. 树高度低（通常3层），查询效率高\n\n优势：\n- 范围查询快（叶子节点有序链表）\n- 单节点存储更多键，树更矮\n- 磁盘IO次数少",
+    "tags": "索引",
+    "sort_order": 1
+  },
+  {
+    "id": "mysql-1-1",
+    "category": "mysql",
+    "level": 1,
+    "parent_id": "mysql-1",
+    "title": "为什么 MySQL 用 B+树而不是 B树？",
+    "answer": "1. B+树非叶子节点不存数据，单节点存更多键，树更矮\n2. B+树叶子节点形成链表，范围查询更快\n3. B+树所有查询都要到叶子节点，查询效率稳定",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "mysql-1-2",
+    "category": "mysql",
+    "level": 1,
+    "parent_id": "mysql-1",
+    "title": "聚簇索引和非聚簇索引的区别？",
+    "answer": "聚簇索引：叶子节点存储完整数据，主键索引就是聚簇索引\n非聚簇索引：叶子节点存储主键值，需要回表查询完整数据\n\n覆盖索引：索引包含查询的所有字段，不需要回表",
+    "tags": "",
+    "sort_order": 2
+  },
+  {
+    "id": "mysql-2",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 事务的隔离级别？",
+    "answer": "1. 读未提交（READ UNCOMMITTED）：脏读、不可重复读、幻读\n2. 读已提交（READ COMMITTED）：不可重复读、幻读\n3. 可重复读（REPEATABLE READ）：幻读（MVCC解决）\n4. 串行化（SERIALIZABLE）：无并发问题\n\nMySQL默认：可重复读",
+    "tags": "事务",
+    "sort_order": 2
+  },
+  {
+    "id": "mysql-2-1",
+    "category": "mysql",
+    "level": 1,
+    "parent_id": "mysql-2",
+    "title": "什么是脏读、不可重复读、幻读？",
+    "answer": "脏读：读到其他事务未提交的数据\n不可重复读：同一事务两次读取结果不同（修改导致）\n幻读：同一事务两次读取记录数不同（插入/删除导致）",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "mysql-3",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MVCC 多版本并发控制原理？",
+    "answer": "MVCC：每行数据保存版本链，通过Read View判断可见性。\n\n核心组件：\n- 隐藏字段：trx_id、roll_pointer\n- Undo Log：版本链\n- Read View：活跃事务列表\n\n判断规则：trx_id < min_trx_id → 可见",
+    "tags": "MVCC",
+    "sort_order": 3
+  },
+  {
+    "id": "mysql-4",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 的锁机制？",
+    "answer": "按粒度：全局锁、表锁、行锁\n按类型：共享锁（S）、排他锁（X）、意向锁\n按算法：记录锁、间隙锁、临键锁\n\nInnoDB行锁：\n- 记录锁：锁单条记录\n- 间隙锁：锁间隙，防止插入\n- 临键锁：记录锁+间隙锁",
+    "tags": "锁",
+    "sort_order": 4
+  },
+  {
+    "id": "mysql-4-1",
+    "category": "mysql",
+    "level": 1,
+    "parent_id": "mysql-4",
+    "title": "什么时候用间隙锁？",
+    "answer": "在可重复读隔离级别下，防止幻读。\n- 间隙锁锁住一个范围，防止其他事务插入\n- 间隙锁之间不冲突，但与插入意向锁冲突",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "mysql-5",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 查询优化方法？",
+    "answer": "1. 使用索引：避免全表扫描\n2. 覆盖索引：避免回表\n3. 索引最左匹配：复合索引按顺序使用\n4. 避免索引失效：不在索引列上做运算\n5. 限制结果集：LIMIT\n6. 优化JOIN：小表驱动大表\n7. 避免SELECT *",
+    "tags": "优化",
+    "sort_order": 5
+  },
+  {
+    "id": "mysql-5-1",
+    "category": "mysql",
+    "level": 1,
+    "parent_id": "mysql-5",
+    "title": "索引失效的场景？",
+    "answer": "1. 在索引列上做运算\n2. 使用函数\n3. 类型转换\n4. LIKE以%开头\n5. OR条件有非索引列\n6. 复合索引未按最左匹配",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "mysql-6",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 分库分表的策略？",
+    "answer": "分表：\n- 垂直分表：拆分字段到不同表\n- 水平分表：拆分数据到不同表（按ID范围、Hash）\n\n分库：\n- 垂直分库：按业务拆分\n- 氰平分库：数据分散到多个库\n\n问题：跨库JOIN、分布式事务、主键生成",
+    "tags": "分库分表",
+    "sort_order": 6
+  },
+  {
+    "id": "mysql-7",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "Explain 分析 SQL 执行计划？",
+    "answer": "关键字段：\n- id：执行顺序\n- type：访问类型（const、ref、range、index、ALL）\n- key：使用的索引\n- rows：预估扫描行数\n- Extra：额外信息（Using index覆盖索引）",
+    "tags": "Explain",
+    "sort_order": 7
+  },
+  {
+    "id": "mysql-8",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 主从复制原理？",
+    "answer": "流程：\n1. 主库写入Binlog\n2. 从库IO线程读取Binlog写入Relay Log\n3. 从库SQL线程执行Relay Log\n\n模式：异步复制、半同步复制、全同步复制",
+    "tags": "主从",
+    "sort_order": 8
+  },
+  {
+    "id": "mysql-9",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redo Log 和 Undo Log？",
+    "answer": "Redo Log：重做日志，记录物理修改，保证持久性（崩溃恢复）\nUndo Log：回滚日志，记录逻辑修改，保证原子性（事务回滚）、MVCC版本链",
+    "tags": "",
+    "sort_order": 9
+  },
+  {
+    "id": "mysql-10",
+    "category": "mysql",
+    "level": 0,
+    "parent_id": null,
+    "title": "MySQL 如何避免死锁？",
+    "answer": "1. 按相同顺序访问表和行\n2. 避免长事务\n3. 使用合理的索引\n4. 降低隔离级别\n5. 使用乐观锁",
+    "tags": "死锁",
+    "sort_order": 10
+  }
+]

@@ -1,0 +1,142 @@
+[
+  {
+    "id": "distributed-1",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "CAP 定理？",
+    "answer": "CAP只能同时满足两个：\n- Consistency（一致性）：所有节点同一时刻数据一致\n- Availability（可用性）：每个请求都能在合理时间得到响应\n- Partition tolerance（分区容错）：网络分区时系统仍能运行\n\n实际选择：CP（Redis）或 AP（AP系统）",
+    "tags": "CAP",
+    "sort_order": 1
+  },
+  {
+    "id": "distributed-1-1",
+    "category": "distributed",
+    "level": 1,
+    "parent_id": "distributed-1",
+    "title": "为什么不能同时满足 CAP？",
+    "answer": "网络分区必然存在（P必须有），此时要在C和A之间选择：\n- 要一致性：拒绝部分请求（放弃可用性）\n- 要可用性：允许部分节点数据不一致（放弃一致性）",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "distributed-2",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "BASE 理论？",
+    "answer": "Basically Available（基本可用）：允许损失部分可用性\nSoft state（软状态）：允许中间状态\nEventually consistent（最终一致性）：经过一段时间后达到一致\n\nBASE是对CAP的补充，追求最终一致性",
+    "tags": "BASE",
+    "sort_order": 2
+  },
+  {
+    "id": "distributed-3",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "分布式锁的实现方式？",
+    "answer": "基于数据库：唯一索引\n基于Redis：SET NX + Lua脚本\n基于ZooKeeper：临时有序节点\n基于etcd：Raft协议\n\n对比：\n- Redis：性能高，但可能不满足强一致\n- ZooKeeper：强一致，但性能较低\n- etcd：兼顾性能和一致性",
+    "tags": "分布式锁",
+    "sort_order": 3
+  },
+  {
+    "id": "distributed-4",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "分布式事务解决方案？",
+    "answer": "2PC（两阶段提交）：协调者、参与者，强一致但阻塞\n3PC：增加准备阶段，减少阻塞\nTCC：Try-Confirm-Cancel，业务侵入\n本地消息表：异步确保，最终一致\n消息事务：MQ事务消息\nSeata：AT、TCC、SAGA模式",
+    "tags": "分布式事务",
+    "sort_order": 4
+  },
+  {
+    "id": "distributed-4-1",
+    "category": "distributed",
+    "level": 1,
+    "parent_id": "distributed-4",
+    "title": "2PC 有什么问题？",
+    "answer": "1. 同步阻塞：参与者在等待协调者指令时锁定资源\n2. 单点故障：协调者宕机导致事务阻塞\n3. 数据不一致：协调者第二阶段发送部分失败",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "distributed-5",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "消息队列的作用？",
+    "answer": "解耦：系统间通过消息通信，降低耦合\n异步：非核心流程异步处理，提高响应速度\n削峰：高峰请求写入队列，后台慢慢处理\n广播：一条消息多个消费者\n\n常见MQ：RabbitMQ、Kafka、RocketMQ",
+    "tags": "消息队列",
+    "sort_order": 5
+  },
+  {
+    "id": "distributed-5-1",
+    "category": "distributed",
+    "level": 1,
+    "parent_id": "distributed-5",
+    "title": "如何保证消息不丢失？",
+    "answer": "生产者：确认机制（ACK）\nBroker：同步刷盘、多副本\n消费者：手动提交offset",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "distributed-5-2",
+    "category": "distributed",
+    "level": 1,
+    "parent_id": "distributed-5",
+    "title": "如何保证消息顺序？",
+    "answer": "单队列单消费者\n分区有序：同一分区内有序（Kafka）\n生产者按Key分片",
+    "tags": "",
+    "sort_order": 2
+  },
+  {
+    "id": "distributed-6",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "Kafka 和 RabbitMQ 的区别？",
+    "answer": "Kafka：\n- 高吞吐，适合大数据\n- 消息持久化到磁盘\n- 分区有序\n- 消费者pull模式\n\nRabbitMQ：\n- 低延迟，适合业务消息\n- 支持多种协议\n- 消息优先级、延迟队列\n- push模式",
+    "tags": "",
+    "sort_order": 6
+  },
+  {
+    "id": "distributed-7",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "分布式 ID 生成方案？",
+    "answer": "UUID：无序、无业务含义\n数据库自增：单点瓶颈\nRedis自增：依赖Redis\nSnowflake：时间戳+机器ID+序号，有序、高性能\nLeaf：美团方案，双buffer\n",
+    "tags": "",
+    "sort_order": 7
+  },
+  {
+    "id": "distributed-8",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "ZooKeeper 的作用？",
+    "answer": "配置管理：集中式配置\n服务注册：服务发现\n分布式锁：临时节点\n集群选举：Leader选举\n\n数据模型：树形结构，ZNode\n一致性协议：ZAB",
+    "tags": "ZooKeeper",
+    "sort_order": 8
+  },
+  {
+    "id": "distributed-9",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "Raft 协议？",
+    "answer": "Leader选举：随机超时选举\n日志复制：Leader负责日志同步\n安全性：已提交日志不会被覆盖\n\n角色：Leader、Follower、Candidate",
+    "tags": "Raft",
+    "sort_order": 9
+  },
+  {
+    "id": "distributed-10",
+    "category": "distributed",
+    "level": 0,
+    "parent_id": null,
+    "title": "微服务架构的优缺点？",
+    "answer": "优点：\n- 服务独立部署、扩展\n- 技术栈灵活\n- 故障隔离\n\n缺点：\n- 运维复杂\n- 分布式问题（事务、调用）\n- 服务治理成本\n\n服务治理：注册中心、配置中心、网关、熔断降级",
+    "tags": "微服务",
+    "sort_order": 10
+  }
+]

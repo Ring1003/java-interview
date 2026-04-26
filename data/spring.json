@@ -1,0 +1,152 @@
+[
+  {
+    "id": "spring-1",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring IOC 容器的原理？",
+    "answer": "IOC（Inversion of Control）控制反转：对象创建权交给容器，解耦对象依赖关系。\nDI（依赖注入）是实现手段。\n\n核心容器：BeanFactory、ApplicationContext\n\n注入方式：构造器注入、Setter注入、字段注入（@Autowired）",
+    "tags": "IOC",
+    "sort_order": 1
+  },
+  {
+    "id": "spring-1-1",
+    "category": "spring",
+    "level": 1,
+    "parent_id": "spring-1",
+    "title": "BeanFactory 和 ApplicationContext 的区别？",
+    "answer": "BeanFactory：基础容器，延迟加载，不支持AOP\nApplicationContext：高级容器，立即加载，支持AOP、事件、国际化",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "spring-2",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring Bean 的生命周期？",
+    "answer": "1. 实例化（Instantiation）\n2. 属性赋值（Populate）\n3. 初始化（Initialization）：Aware接口 → BeanPostProcessor → init-method\n4. 使用\n5. 销毁（Destruction）：BeanPostProcessor → destroy-method",
+    "tags": "Bean生命周期",
+    "sort_order": 2
+  },
+  {
+    "id": "spring-2-1",
+    "category": "spring",
+    "level": 1,
+    "parent_id": "spring-2",
+    "title": "BeanPostProcessor 的作用？",
+    "answer": "在Bean初始化前后执行自定义逻辑。\n常见用途：AOP代理创建、属性校验、注解处理",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "spring-3",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring AOP 的实现原理？",
+    "answer": "AOP（Aspect Oriented Programming）面向切面编程。\n\n实现方式：\n1. JDK动态代理：基于接口\n2. CGLIB：基于类，生成子类\n\n核心概念：切面、连接点、切入点、通知、目标对象、代理",
+    "tags": "AOP",
+    "sort_order": 3
+  },
+  {
+    "id": "spring-3-1",
+    "category": "spring",
+    "level": 1,
+    "parent_id": "spring-3",
+    "title": "JDK 动态代理和 CGLIB 的区别？",
+    "answer": "JDK动态代理：基于接口，只能代理接口方法\nCGLIB：基于类，通过继承生成子类，可以代理类方法\n\nSpring默认：有接口用JDK，无接口用CGLIB",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "spring-4",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring 事务的原理和传播行为？",
+    "answer": "原理：AOP + ThreadLocal绑定数据库连接\n\n传播行为：\n- REQUIRED（默认）：有事务就加入，无就新建\n- SUPPORTS：有事务就加入\n- MANDATORY：必须有事务\n- REQUIRES_NEW：新建事务，挂起当前\n- NOT_SUPPORTED：无事务方式运行\n- NEVER：必须无事务\n- NESTED：嵌套事务",
+    "tags": "事务",
+    "sort_order": 4
+  },
+  {
+    "id": "spring-4-1",
+    "category": "spring",
+    "level": 1,
+    "parent_id": "spring-4",
+    "title": "Spring 事务失效的场景？",
+    "answer": "1. 方法不是public\n2. 同类方法调用（绕过代理）\n3. 异常被捕获未抛出\n4. 异常类型不匹配（默认RuntimeException）\n5. 数据库不支持事务",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "spring-5",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring 如何解决循环依赖？",
+    "answer": "三级缓存解决循环依赖：\n- singletonObjects：单例池\n- earlySingletonObjects：早期单例对象（未完成初始化）\n- singletonFactories：单例工厂\n\n流程：A创建 → 发现依赖B → B创建 → 发现依赖A → 从三级缓存获取A的引用 → B完成 → A完成",
+    "tags": "循环依赖",
+    "sort_order": 5
+  },
+  {
+    "id": "spring-5-1",
+    "category": "spring",
+    "level": 1,
+    "parent_id": "spring-5",
+    "title": "为什么三级缓存解决不了构造器循环依赖？",
+    "answer": "构造器注入在实例化阶段就需要依赖对象，此时Bean还未创建，三级缓存中不存在。\n解决：使用@Lazy延迟加载",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "spring-6",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring Boot 自动装配原理？",
+    "answer": "@EnableAutoConfiguration → @Import(AutoConfigurationImportSelector)\n\n流程：\n1. 扫描META-INF/spring.factories\n2. 加载自动配置类\n3. 根据条件注解（@ConditionalOnClass等）筛选\n4. 注册Bean",
+    "tags": "自动配置",
+    "sort_order": 6
+  },
+  {
+    "id": "spring-7",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring 中的设计模式？",
+    "answer": "1. 工厂模式：BeanFactory\n2. 单例模式：Spring Bean默认单例\n3. 代理模式：AOP\n4. 模板方法模式：JdbcTemplate\n5. 观察者模式：ApplicationEvent\n6. 策略模式：Resource加载\n7. 适配器模式：HandlerAdapter",
+    "tags": "设计模式",
+    "sort_order": 7
+  },
+  {
+    "id": "spring-8",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "@Autowired 和 @Resource 的区别？",
+    "answer": "@Autowired：Spring注解，默认按类型注入，配合@Qualifier指定名称\n@Resource：JDK注解，默认按名称注入，找不到再按类型",
+    "tags": "",
+    "sort_order": 8
+  },
+  {
+    "id": "spring-9",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring MVC 的工作流程？",
+    "answer": "1. 请求到达DispatcherServlet\n2. 调用HandlerMapping查找Controller\n3. HandlerAdapter执行Controller\n4. 返回ModelAndView\n5. ViewResolver解析视图\n6. 渲染视图返回响应",
+    "tags": "MVC",
+    "sort_order": 9
+  },
+  {
+    "id": "spring-10",
+    "category": "spring",
+    "level": 0,
+    "parent_id": null,
+    "title": "Spring Boot 的启动流程？",
+    "answer": "1. 创建SpringApplication对象\n2. 加载Initializer和Listener\n3. 准备Environment\n4. 创建ApplicationContext\n5. 预处理Context\n6. 刷新Context（自动装配、Bean创建）\n7. 执行Runner",
+    "tags": "",
+    "sort_order": 10
+  }
+]

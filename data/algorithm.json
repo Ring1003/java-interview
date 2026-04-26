@@ -1,0 +1,112 @@
+[
+  {
+    "id": "algorithm-1",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "常见排序算法及时间复杂度？",
+    "answer": "冒泡排序：O(n²)\n选择排序：O(n²)\n插入排序：O(n²)\n快速排序：O(nlogn)\n归并排序：O(nlogn)\n堆排序：O(nlogn)\n\n稳定排序：冒泡、插入、归并\n不稳定排序：选择、快排、堆排",
+    "tags": "排序",
+    "sort_order": 1
+  },
+  {
+    "id": "algorithm-1-1",
+    "category": "algorithm",
+    "level": 1,
+    "parent_id": "algorithm-1",
+    "title": "快速排序的原理和优化？",
+    "answer": "原理：选择基准，分为小于基准和大于基准两部分，递归排序。\n\n优化：\n- 三数取中选基准\n- 小区间使用插入排序\n- 尾递归优化\n- 三路快排（重复元素多时）",
+    "tags": "",
+    "sort_order": 1
+  },
+  {
+    "id": "algorithm-2",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "二叉树遍历方式？",
+    "answer": "前序遍历：根-左-右\n中序遍历：左-根-右\n后序遍历：左-右-根\n层序遍历：按层从上到下\n\n递归实现简洁，迭代用栈（DFS）或队列（BFS）",
+    "tags": "树",
+    "sort_order": 2
+  },
+  {
+    "id": "algorithm-3",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "二分查找的实现？",
+    "answer": "条件：有序数组\n\n模板：\nwhile(left <= right) {\n  int mid = left + (right-left)/2;\n  if(nums[mid] == target) return mid;\n  else if(nums[mid] < target) left = mid+1;\n  else right = mid-1;\n}\n\n变体：查找第一个/最后一个等于target的位置",
+    "tags": "查找",
+    "sort_order": 3
+  },
+  {
+    "id": "algorithm-4",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "动态规划的核心思想？",
+    "answer": "核心：将复杂问题分解为子问题，保存子问题的解避免重复计算。\n\n步骤：\n1. 定义状态\n2. 找状态转移方程\n3. 确定初始条件\n4. 计算顺序\n\n经典题目：爬楼梯、背包问题、最长公共子序列、最长递增子序列",
+    "tags": "DP",
+    "sort_order": 4
+  },
+  {
+    "id": "algorithm-5",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "链表常见操作？",
+    "answer": "反转链表：迭代或递归\n检测环：快慢指针\n找环入口：快慢指针相遇后从头走\n合并有序链表：双指针\n找中间节点：快慢指针\n删除倒数第N个：快慢指针",
+    "tags": "链表",
+    "sort_order": 5
+  },
+  {
+    "id": "algorithm-6",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "栈和队列的互相实现？",
+    "answer": "栈实现队列：两个栈，一个入栈，一个出栈，出栈为空时倒入\n队列实现栈：两个队列，倒来倒去，保持一个为空",
+    "tags": "栈,队列",
+    "sort_order": 6
+  },
+  {
+    "id": "algorithm-7",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "BFS 和 DFS 的应用场景？",
+    "answer": "BFS（广度优先）：\n- 最短路径（无权图）\n- 层序遍历\n- 用队列实现\n\nDFS（深度优先）：\n- 路径搜索\n- 拓扑排序\n- 用栈或递归实现",
+    "tags": "图",
+    "sort_order": 7
+  },
+  {
+    "id": "algorithm-8",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "LRU 缓存实现？",
+    "answer": "数据结构：HashMap + 双向链表\n\n操作：\n- get：移到链表头部\n- put：存在则更新并移到头部，不存在则插入头部，超出容量删除尾部\n\nJava：LinkedHashMap（accessOrder=true）",
+    "tags": "LRU",
+    "sort_order": 8
+  },
+  {
+    "id": "algorithm-9",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "Top K 问题？",
+    "answer": "方案：\n1. 排序：O(nlogn)\n2. 堆：维护大小为K的小顶堆，O(nlogk)\n3. 快速选择：基于快排partition，平均O(n)\n\n数据量大时用堆或快速选择",
+    "tags": "TopK",
+    "sort_order": 9
+  },
+  {
+    "id": "algorithm-10",
+    "category": "algorithm",
+    "level": 0,
+    "parent_id": null,
+    "title": "字符串匹配算法？",
+    "answer": "暴力匹配：O(mn)\nKMP：O(m+n)，利用next数组跳过已匹配部分\n\nnext数组：最长相同前后缀长度",
+    "tags": "字符串",
+    "sort_order": 10
+  }
+]
