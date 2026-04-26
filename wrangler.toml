@@ -5,4 +5,4 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "java-interview-db"
-database_id = "preview-database-id" # Will be updated after D1 creation
+database_id = "c88fb0e8-4f4e-48d6-81c5-8c108d4757ed"
