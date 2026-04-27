@@ -1,0 +1,12 @@
+[
+  {
+    "id": "redis-001",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 的数据结构和应用场景？",
+    "answer": "## 核心概念\n\nRedis是一个开源的、基于内存的高性能键值对数据库。它支持五种基本数据结构：String字符串、Hash哈希、List列表、Set集合、ZSet有序集合，以及三种特殊数据结构：Bitmap位图、HyperLogLog基数统计、Geospatial地理位置和Stream流。\n\n每种数据结构都有其独特的应用场景。String是最基础的类型，可用于缓存、计数器、分布式锁；Hash适合存储对象属性，如用户信息、购物车；List可用于消息队列、最新列表；Set适用于去重、共同关注、抽奖系统；ZSet则用于排行榜、延时队列。\n\n## 底层原理\n\nRedis的核心数据结构在C语言层面有着精妙的实现。String底层使用SDS简单动态字符串，它在C字符串基础上增加了len属性记录长度、free属性记录剩余空间，避免了ON的strlen操作，同时具有二进制安全特性和动态扩容机制。\n\nHash在元素较少时使用ziplist或listpack，当元素数量超过512或单个元素大小超过64字节时转换为hashtable。List使用quicklist快速列表，它是ziplist的双向链表结构。Set在元素都是整数且数量不超过512时使用intset，否则使用hashtable。ZSet底层使用skiplist跳表和hashtable的组合结构。\n\n## 代码示例\n\nSET user:1001:name 张三\nGET user:1001:name\nINCR counter\nHMSET user:1001 name 张三 age 25\nLPUSH news:latest news1\nSADD tags:article:1 redis database\nZADD leaderboard 100 user1\n\n## 常见考点\n\n面试中常考各数据结构的底层实现及转换条件，SDS相比C字符串的优势，为什么ZSet使用跳表而不是红黑树，ziplist的内存紧凑原理及其局限性，quicklist如何平衡内存和性能。\n\n## 对比延伸\n\n与Memcached相比，Redis支持更多数据结构，支持持久化，支持集群。与关系型数据库相比，Redis基于内存速度快但容量有限，不支持复杂查询，适合做缓存、排行榜、计数器等辅助场景。",
+    "tags": "数据结构,基础",
+    "sort_order": 1
+  }
+]
