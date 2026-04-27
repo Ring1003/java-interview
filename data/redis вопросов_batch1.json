@@ -1,0 +1,62 @@
+[
+  {
+    "id": "redis-001",
+    "category": "redis",
+    "level": 0,
+    "parent_id": null,
+    "title": "Redis 的数据结构和应用场景？",
+    "answer": "## 核心概念\n\nRedis是一个开源的、基于内存的高性能键值对数据库。它支持五种基本数据结构：String字符串、Hash哈希、List列表、Set集合、ZSet有序集合，以及三种特殊数据结构：Bitmap位图、HyperLogLog基数统计、Geospatial地理位置和Stream流。每种数据结构都有其独特的应用场景。String是最基础的类型，可用于缓存、计数器、分布式锁；Hash适合存储对象属性，如用户信息、购物车；List可用于消息队列、最新列表；Set适用于去重、共同关注、抽奖系统；ZSet则用于排行榜、延时队列。\n\n## 底层原理\n\nRedis的核心数据结构在C语言层面有着精妙的实现。String底层使用SDS简单动态字符串，它在C字符串基础上增加了len属性记录长度、free属性记录剩余空间。Hash在元素较少时使用ziplist压缩列表，当元素数量超过512或单个元素大小超过64字节时转换为hashtable。List使用quicklist快速列表，它是ziplist的双向链表结构。Set在元素都是整数且数量不超过512时使用intset整数集合，否则使用hashtable。ZSet底层使用skiplist跳表和hashtable的组合结构，跳表提供O(logN)的查找效率。\n\n## 代码示例\n\nSET user:1001:name 张三\nGET user:1001:name\nINCR counter\nHMSET user:1001 name 张三 age 25\nHGET user:1001 name\nLPUSH news:latest news1 news2\nRANGE news:latest 0 9\nSADD tags:article:1 redis database\nSINTER tags:article:1 tags:article:2\nZADD leaderboard 100 user1 200 user2\nZREVRANGE leaderboard 0 9 WITHSCORES\n\n## 常见考点\n\n面试中常考各数据结构的底层实现及转换条件，SDS相比C字符串的优势，为什么ZSet使用跳表而不是红黑树，ziplist的内存紧凑原理及其局限性，quicklist如何平衡内存和性能。\n\n## 对比延伸\n\n与Memcached相比，Redis支持更多数据结构5种vs 1种String，支持持久化RDB/AOF，支持集群原生Cluster。与关系型数据库相比，Redis基于内存速度快但容量有限，不支持复杂查询，适合做缓存、排行榜、计数器等辅助场景。",
+    "tags": "数据结构,基础",
+    "sort_order": 1
+  },
+  {
+    "id": "redis-001-1",
+    "category": "redis",
+    "level": 1,
+    "parent_id": "redis-001",
+    "title": "Redis ZSet 为什么使用跳表而不是红黑树？",
+    "answer": "## 核心概念\n\n跳表Skip List是一种概率性的数据结构，通过在有序链表上建立多层索引来实现快速查找，时间复杂度为O(logN)。Redis选择跳表而不是红黑树作为ZSet的核心数据结构，是因为跳表实现简单，代码量约为红黑树的1/3，更容易维护；范围查询高效，执行ZRANGE等操作时只需简单遍历；内存占用合理，指针数量约为数据节点的2倍；并发友好，更容易实现无锁并发。\n\n## 底层原理\n\n跳表的实现原理是建立多层链表索引。最底层是包含所有元素的有序链表，上层每层都是下层的稀疏索引。查找时从最高层开始，如果下一节点大于目标值则下降一层。插入时通过概率决定是否在新节点上建立上层索引，Redis中每个节点有25%的概率建立上层索引。Redis源码中zskiplistNode结构体包含ele成员、score分数、backward后退指针和level数组。\n\n## 代码示例\n\ntypedef struct zskiplistNode {\n    sds ele;\n    double score;\n    struct zskiplistNode *backward;\n    struct zskiplistLevel {\n        struct zskiplistNode *forward;\n        unsigned long span;\n    } level[];\n} zskiplistNode;\n\nZADD leaderboard 100 user1\nZRANGE leaderboard 0 -1 WITHSCORES\nZREVRANK leaderboard user1\n\n## 常见考点\n\n面试常问跳表的查找、插入、删除时间复杂度均为O(logN)；为什么Redis中每个节点上升概率是25%这是空间和时间的平衡；跳表相比B+树的优劣跳表更适合内存，B+树适合磁盘；ZSet同时使用dict和skiplist的原因dict提供O(1)成员查找，skiplist提供范围查询。\n\n## 对比延伸\n\n红黑树的优势是严格的平衡保证，最坏情况下查找效率更稳定。但Redis的场景下，跳表的简单实现、高效范围查询更重要。LevelDB和RocksDB也使用跳表作为MemTable的实现。",
+    "tags": "数据结构,ZSet,跳表",
+    "sort_order": 1
+  },
+  {
+    "id": "redis-001-2",
+    "category": "redis",
+    "level": 1,
+    "parent_id": "redis-001",
+    "title": "Redis SDS简单动态字符串的设计原理？",
+    "answer": "## 核心概念\n\nSDSSimple Dynamic String是Redis自定义的字符串类型，用于替代传统C字符串。SDS的设计目标是解决C字符串的几个关键问题：ON的长度计算、频繁的内存重分配、二进制安全问题、缓冲区溢出风险。SDS的核心结构包含len记录已使用长度、alloc记录剩余可用空间、buf存储实际数据。\n\n## 底层原理\n\nRedis源码中SDS有多种实现以优化内存：sdshdr5长度小于32使用1字节存储len和flags，sdshdr8长度小于256使用uint8_t存储len和alloc。SDS的内存分配策略：当修改后len小于1MB，分配len加free等于2乘len的空间；当len大于等于1MB，每次多分配1MB。空间释放时不会立即归还操作系统，而是记录在free中供后续使用。\n\n## 代码示例\n\nsds sdsnewlen(const void *init, size_t initlen) {\n    void *sh;\n    sds s;\n    char type = sdsReqType(initlen);\n    int hdrlen = sdsHdrSize(type);\n    sh = s_malloc(hdrlen + initlen + 1);\n    s = (char*)sh + hdrlen;\n    return s;\n}\n\nSET key value\nGET key\nAPPEND key suffix\n\n## 常见考点\n\n面试常问SDS与C字符串的区别；SDS的内存分配策略扩容和释放；为什么SDS是二进制安全的；SDS的5种类型及其使用场景；SDS如何避免缓冲区溢出。\n\n## 对比延伸\n\nC++的std::string也采用类似的动态扩容策略，但SDS的设计更轻量。Java的StringBuilder使用字符数组存储，扩容策略是len加1乘2，与SDS的策略类似。理解SDS的设计思想有助于设计高效的字符串处理系统。",
+    "tags": "数据结构,String,SDS",
+    "sort_order": 2
+  },
+  {
+    "id": "redis-001-3",
+    "category": "redis",
+    "level": 1,
+    "parent_id": "redis-001",
+    "title": "Redis Hash 底层实现原理？",
+    "answer": "## 核心概念\n\nRedis Hash是一个键值对集合，适合存储对象属性。底层实现根据元素数量和大小在两种结构间切换：ziplist压缩列表或listpack和hashtable哈希表。当Hash对象同时满足两个条件时使用ziplist：元素数量小于等于512，且所有键值对的键和值的长度都小于等于64字节。任一条件不满足则转换为hashtable。\n\n## 底层原理\n\nziplist是一块连续内存，按顺序存储每个entry。每个entry包含previous_entry_len前一个元素长度用于反向遍历、encoding编码类型、content实际内容。ziplist的插入和删除需要内存重分配和数据移动，ON复杂度，但内存占用极低。hashtable使用Redis自定义的dict结构，包含两个哈希表ht0和ht1用于rehash。当负载因子大于1扩容或小于0.1收缩时触发rehash。\n\n## 代码示例\n\nHMSET user:1001 name 张三 age 25 city 北京\nHGET user:1001 name\nHGETALL user:1001\nHINCRBY user:1001 age 1\nHDEL user:1001 city\nOBJECT ENCODING user:1001\n\n## 常见考点\n\n面试常问Hash的两种编码方式及转换条件；ziplist的结构和优缺点；渐进式rehash的原理和触发条件；哈希冲突的解决方式链地址法；为什么使用两个哈希表ht0和ht1。\n\n## 对比延伸\n\nJava HashMap和Redis Hash都使用链地址法解决冲突，但Java 8在链表长度大于等于8时转换为红黑树，而Redis不做转换。Redis的渐进式rehash与Java HashMap的扩容不同，后者是一次性扩容并迁移。",
+    "tags": "数据结构,Hash,ziplist",
+    "sort_order": 3
+  },
+  {
+    "id": "redis-001-4",
+    "category": "redis",
+    "level": 1,
+    "parent_id": "redis-001",
+    "title": "Redis List 底层实现原理？",
+    "answer": "## 核心概念\n\nRedis List是一个双端队列，支持从两端推入和弹出元素。从Redis 3.2开始，List统一使用quicklist快速列表。quicklist是一个双向链表，每个节点是一个ziplist，结合了链表的快速插入删除和压缩列表的内存紧凑优势。Redis 7.0进一步引入listpack替代ziplist，解决了ziplist在级联更新时的性能问题。\n\n## 底层原理\n\nquicklist的结构定义包含head头节点、tail尾节点、count所有元素总数、len节点数、fill每个节点的ziplist最大长度、compress压缩深度。压缩使用LZF算法，适合中间节点不常访问，节省内存但访问时需要解压。list-max-ziplist-size配置单个节点ziplist的最大字节或元素数，list-compress-depth配置压缩深度。\n\n## 代码示例\n\nLPUSH mylist a b c\nRPUSH mylist d e\nLPOP mylist\nRPOP mylist\nLRANGE mylist 0 -1\nBLPOP mylist 5\nLPUSH queue:task task1\nBRPOP queue:task 30\n\n## 常见考点\n\n面试常问List底层quicklist的结构；ziplist和linkedlist的优缺点及quicklist如何结合两者；list-compress-depth的含义；ziplist与listpack的区别；List的典型应用场景消息队列、最新列表。\n\n## 对比延伸\n\nJava的LinkedList是纯粹的双向链表，没有quicklist的内存优化。BlockingQueue接口的实现如LinkedBlockingQueue与Redis List的阻塞操作类似。理解quicklist的设计有助于设计内存高效的队列系统。",
+    "tags": "数据结构,List,quicklist",
+    "sort_order": 4
+  },
+  {
+    "id": "redis-001-5",
+    "category": "redis",
+    "level": 1,
+    "parent_id": "redis-001",
+    "title": "Redis Set 底层实现原理？",
+    "answer": "## 核心概念\n\nRedis Set是一个无序的字符串集合，不允许重复元素。底层实现根据元素类型和数量在两种结构间切换：intset整数集合和hashtable哈希表。当集合中的所有元素都是整数值，且元素数量小于等于512时使用intset，否则使用hashtable。\n\n## 底层原理\n\nintset是一个有序的整数数组，支持int16_t、int32_t、int64_t三种编码。当插入的元素超出当前编码范围时，intset会自动升级编码类型并重新分配内存。intset的优势是内存紧凑、查找高效使用二分查找O(logN)，但只支持整数、插入删除性能较差ON。hashtable使用dict结构，value为NULL，提供O(1)的添加、删除、查找性能。\n\n## 代码示例\n\nSADD myset member1 member2 member3\nSREM myset member1\nSISMEMBER myset member2\nSMEMBERS myset\nSCARD myset\nSINTER set1 set2\nSUNION set1 set2\nSDIFF set1 set2\nSRANDMEMBER myset -3\n\n## 常见考点\n\n面试常问Set的两种编码方式及转换条件；intset的三种编码及升级机制；intset和hashtable的优缺点；Set的典型应用场景去重、共同关注、抽奖系统。\n\n## 对比延伸\n\nJava的HashSet底层使用HashMap实现，同样提供O(1)的时间复杂度。Redis Set的intset在设计上类似于Java的EnumSet，都是为了在特定场景下优化内存。",
+    "tags": "数据结构,Set,intset",
+    "sort_order": 5
+  }
+]

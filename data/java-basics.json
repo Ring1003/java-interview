@@ -1,142 +1,52 @@
 [
   {
-    "id": "java-basics-1",
+    "id": "jb-001",
     "category": "java-basics",
     "level": 0,
     "parent_id": null,
-    "title": "HashMap 底层实现原理是什么？",
-    "answer": "JDK 1.8 采用数组+链表+红黑树实现。当链表长度超过 8 且数组长度达到 64 时，链表会转换为红黑树以提高查询效率。\n\n主要参数：\n- initialCapacity：初始容量，默认 16\n- loadFactor：负载因子，默认 0.75\n- threshold：扩容阈值 = capacity * loadFactor",
-    "tags": "HashMap,集合",
+    "title": "Java 有哪几种基本数据类型？各自占用多少字节？",
+    "answer": "【核心概念】Java 共有 8 种基本数据类型，分为四类：整型（byte、short、int、long）、浮点型（float、double）、字符型（char）、布尔型（boolean）。这些类型不是对象，直接存储在栈内存中，访问速度快，占用空间确定。\n\n整型：byte 占 1 字节（-128~127），short 占 2 字节（-32768~32767），int 占 4 字节（约 ±21 亿），long 占 8 字节。浮点型：float 占 4 字节（单精度），double 占 8 字节（双精度）。char 占 2 字节，采用 Unicode 编码。boolean 理论上占 1 位，但 JVM 实现中通常占 1 字节。\n\n【底层实现】基本类型在 JVM 中有专门的字节码指令支持。整型运算使用 iadd、isub 等指令，long 使用 ladd、lsub。float 和 double 使用 fadd、dadd。char 在底层作为无符号 16 位整数处理。boolean 在 class 文件中用 int 表示，数组中用 byte 数组实现。\n\n【代码示例】\n```java\n// 整型范围验证\nSystem.out.println(\"Byte: \" + Byte.MIN_VALUE + \" ~ \" + Byte.MAX_VALUE);  // -128 ~ 127\nSystem.out.println(\"Integer: \" + Integer.MIN_VALUE + \" ~ \" + Integer.MAX_VALUE);\n\n// 浮点数精度问题\nfloat f = 0.1f;\ndouble d = 0.1;\nSystem.out.println(f == d);  // false，精度不同\n\n// char 可以存储中文\nchar chinese = '中';\nSystem.out.println((int)chinese);  // 20013\n```\n\n【常见考点】\n1. int 和 Integer 的区别（自动装箱）\n2. float f = 1.0 是否正确（错误，1.0 是 double）\n3. char 能否存储中文（可以，Unicode 编码）\n4. boolean 在内存中的实际占用\n\n【对比延伸】与 C/C++ 不同，Java 基本类型大小固定，不依赖平台。Java 没有无符号整型（除 char），而 C/C++ 有 unsigned。Java 的 boolean 是独立类型，C/C++ 中 bool 可以与 int 隐式转换。",
+    "tags": ["基本数据类型", "内存", "JVM"],
     "sort_order": 1
   },
   {
-    "id": "java-basics-1-1",
+    "id": "jb-001-1",
     "category": "java-basics",
     "level": 1,
-    "parent_id": "java-basics-1",
-    "title": "为什么链表转红黑树的阈值是 8？",
-    "answer": "基于泊松分布计算。在 hash 良好的情况下，链表长度达到 8 的概率约为 0.00000006，非常小。选择 8 是在时间和空间成本上的权衡。",
-    "tags": "",
+    "parent_id": "jb-001",
+    "title": "为什么 Java 基本数据类型的大小是固定的？这样设计有什么优缺点？",
+    "answer": "【核心概念】Java 设计之初就确定\"一次编写，到处运行\"的理念，基本类型大小固定是实现跨平台的基础。无论在 32 位还是 64 位系统上，int 永远是 4 字节，long 永远是 8 字节。这与 C/C++ 不同，C 语言中 long 在 Windows 64 位是 4 字节，在 Linux 64 位是 8 字节。\n\n【底层实现】JVM 规范明确定义了每种基本类型的取值范围和存储格式。class 文件中的字节码操作与类型大小紧密相关，例如 iadd 指令操作的是 4 字节 int，ladd 操作的是 8 字节 long。这种设计简化了 JIT 编译器的工作，因为类型大小在编译时就已确定。\n\n【代码示例】\n```java\n// 跨平台一致性验证\nSystem.out.println(\"int bytes: \" + Integer.BYTES);  // 始终为 4\nSystem.out.println(\"long bytes: \" + Long.BYTES);    // 始终为 8\n\n// C/C++ 中大小可能变化（伪代码说明）\n// printf(\"sizeof(long): %zu\", sizeof(long));\n// Windows 64: 4, Linux 64: 8\n```\n\n【常见考点】\n1. Java 与 C/C++ 类型大小的区别\n2. 为什么 Java 没有 sizeof 运算符\n3. 64 位 JVM 对引用类型的影响\n\n【对比延伸】优点：跨平台一致性、简化编程、类型安全。缺点：无法根据平台优化内存占用、处理超大整数需要 BigInteger。Go 语言采用了类似设计，而 Rust 提供了更多整数类型选择（i8、i16、i32、i64、i128、isize）。",
+    "tags": ["跨平台", "JVM规范", "设计理念"],
     "sort_order": 1
   },
   {
-    "id": "java-basics-1-1-1",
+    "id": "jb-001-1-1",
     "category": "java-basics",
     "level": 2,
-    "parent_id": "java-basics-1-1",
-    "title": "红黑树退化回链表的阈值为什么是 6？",
-    "answer": "避免在阈值附近频繁转换造成性能抖动。设置为 6 而不是 7 或 8，留有缓冲空间。",
-    "tags": "",
+    "parent_id": "jb-001-1",
+    "title": "JVM 如何在不同平台上保证基本类型大小一致？",
+    "answer": "【核心概念】JVM 通过抽象指令集和规范约束来实现跨平台一致性。Java 源码编译成 class 文件时，基本类型就已经被编码为标准格式。JVM 字节码规范定义了每种类型的存储和运算规则，各平台的 JVM 实现都必须遵守这些规则。\n\n【底层实现】\n1. **class 文件格式**：整数字面量以大端序存储，float/double 使用 IEEE 754 标准格式。class 文件本身就是跨平台的中间表示。\n\n2. **字节码指令**：每种基本类型有独立的指令集。iload、istore 用于 int，lload、lstore 用于 long。JIT 编译器在生成机器码时，会将这些抽象指令映射到具体 CPU 指令，同时保证类型大小语义正确。\n\n3. **内存布局**：JVM 在堆上分配对象时，基本类型字段的大小由规范确定。例如 int 字段始终占 4 字节，long 字段始终占 8 字节，与底层硬件无关。\n\n【代码示例】\n```java\n// 查看 class 文件中的类型编码\n// 使用 javap -v 反编译可以看到：\n// int -> I, long -> J, float -> F, double -> D\n\n// 查看对象内存布局（使用 JOL 工具）\nSystem.out.println(ClassLayout.parseClass(int.class).toPrintable());\n```\n\n【常见考点】\n1. 字节码中基本类型的描述符\n2. JIT 编译如何处理跨平台类型\n3. 大端序和小端序的影响\n\n【对比延伸】.NET 的 IL（中间语言）也采用类似设计。而 C/C++ 编译直接生成平台相关的机器码，类型大小由编译器和 ABI 决定。",
+    "tags": ["JVM", "字节码", "跨平台"],
     "sort_order": 1
   },
   {
-    "id": "java-basics-1-2",
+    "id": "jb-001-1-2",
+    "category": "java-basics",
+    "level": 2,
+    "parent_id": "jb-001-1",
+    "title": "boolean 类型在 JVM 中是如何存储的？为什么有人说它占用 1 字节，有人说 1 位？",
+    "answer": "【核心概念】boolean 类型在 Java 语言层面只有 true 和 false 两个值，但在 JVM 层面的实现比较特殊。JVM 规范没有明确定义 boolean 的存储大小，而是根据使用场景有不同的实现方式。\n\n【底层实现】\n1. **boolean 变量**：在栈帧的局部变量表中，boolean 被视为 int 处理，占用一个 slot（4 字节）。JVM 字节码中没有专门的 boolean 运算指令，而是使用 int 的指令。\n\n2. **boolean 数组**：在堆内存中，boolean 数组每个元素占用 1 字节。JVM 使用 byte 数组来实现 boolean 数组。\n\n3. **对象中的 boolean 字段**：HotSpot JVM 中，boolean 字段占用 1 字节。\n\nJVM 规范说明：\"Although the Java virtual machine defines a boolean type, it only provides very limited support for it. There are no Java virtual machine instructions solely dedicated to operations on boolean values.\"\n\n【代码示例】\n```java\n// boolean 变量在局部变量表中占 4 字节\nboolean flag = true;\n// 编译后等同于 int flag = 1;\n\n// boolean 数组每个元素占 1 字节\nboolean[] arr = new boolean[10];\n// 底层实现为 byte[] arr = new byte[10];\n\n// 使用 JOL 工具验证对象字段大小\nclass BooleanHolder {\n    boolean b1;\n    boolean b2;\n}\n// 每个 boolean 字段占 1 字节\n```\n\n【常见考点】\n1. boolean 数组与 byte 数组的区别\n2. 为什么 boolean 不建议用于存储大量标志位（BitSet 更高效）\n3. boolean 和 int 的自动转换问题\n\n【对比延伸】C++ 中 bool 通常占 1 字节。某些语言如 C 提供位域（bit field）来精确控制布尔值占用空间。Java 中处理大量布尔标志建议使用 BitSet。",
+    "tags": ["boolean", "内存布局", "JVM实现"],
+    "sort_order": 2
+  },
+  {
+    "id": "jb-001-2",
     "category": "java-basics",
     "level": 1,
-    "parent_id": "java-basics-1",
-    "title": "HashMap 的扩容机制是怎样的？",
-    "answer": "当元素数量超过 threshold 时触发扩容：\n1. 容量翻倍（newCap = oldCap << 1）\n2. 创建新数组\n3. 重新计算每个元素的位置\n\nJDK 1.8 优化：扩容时元素位置要么不变，要么移动到原位置 + oldCap",
-    "tags": "",
+    "parent_id": "jb-001",
+    "title": "Java 中 float 和 double 的精度问题是如何产生的？如何避免？",
+    "answer": "【核心概念】float 和 double 采用 IEEE 754 浮点数标准，使用二进制存储。由于十进制小数在二进制中可能是无限循环小数，导致无法精确表示。例如 0.1 在二进制中是无限循环的，存储时只能近似表示。\n\n【底层实现】IEEE 754 双精度浮点数（double）由三部分组成：符号位（1 位）、指数位（11 位）、尾数位（52 位）。float 单精度则是 1+8+23 位。\n\n精度计算：\n- float 有效数字约 6-7 位十进制\n- double 有效数字约 15-16 位十进制\n\n精度丢失发生在两个环节：\n1. 十进制转二进制时的舍入\n2. 运算过程中的精度损失\n\n【代码示例】\n```java\n// 经典精度问题\nSystem.out.println(0.1 + 0.2);  // 0.30000000000000004\nSystem.out.println(0.1 + 0.2 == 0.3);  // false\n\n// 使用 BigDecimal 精确计算\nBigDecimal a = new BigDecimal(\"0.1\");\nBigDecimal b = new BigDecimal(\"0.2\");\nSystem.out.println(a.add(b));  // 0.3\n\n// 错误用法：double 构造器仍有精度问题\nnew BigDecimal(0.1);  // 0.1000000000000000055511151231257827021181583404541015625\n\n// 正确用法：字符串构造器\nnew BigDecimal(\"0.1\");  // 精确的 0.1\n```\n\n【常见考点】\n1. 为什么 0.1 + 0.2 != 0.3\n2. 如何精确表示金额（BigDecimal）\n3. float 和 double 的有效位数\n\n【对比延伸】某些语言如 Python 3 的 / 运算默认返回高精度的 float。数据库的 DECIMAL 类型用于精确存储金额。金融计算必须使用 BigDecimal 或定点数类型。",
+    "tags": ["浮点数", "精度", "BigDecimal"],
     "sort_order": 2
-  },
-  {
-    "id": "java-basics-2",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "ArrayList 和 LinkedList 的区别？",
-    "answer": "ArrayList：底层动态数组，随机访问 O(1)，插入删除平均 O(n)\nLinkedList：底层双向链表，随机访问 O(n)，已知位置插入删除 O(1)\n\n使用场景：频繁查询用 ArrayList，频繁插入删除用 LinkedList",
-    "tags": "ArrayList,LinkedList",
-    "sort_order": 2
-  },
-  {
-    "id": "java-basics-3",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java 中 String 为什么是不可变的？",
-    "answer": "String 类被 final 修饰，内部 char[] 也被 final 修饰（JDK 9 后改为 byte[]）。\n\n原因：\n1. 字符串常量池：避免重复创建，节省内存\n2. 线程安全：不可变对象天然线程安全\n3. 哈希值缓存：哈希值可以缓存，提高 HashMap 性能\n4. 安全性：防止被恶意修改",
-    "tags": "String",
-    "sort_order": 3
-  },
-  {
-    "id": "java-basics-4",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java 异常体系是怎样的？",
-    "answer": "Throwable 是所有异常的父类\n├── Error：JVM 无法处理的严重问题（OOM、StackOverflow）\n└── Exception\n    ├── 检查异常：编译时必须处理（IOException、SQLException）\n    └── RuntimeException：运行时异常，编译不强制处理",
-    "tags": "异常",
-    "sort_order": 4
-  },
-  {
-    "id": "java-basics-5",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java 泛型的作用和类型擦除？",
-    "answer": "泛型作用：\n1. 编译时类型检查，避免类型转换错误\n2. 减少强制类型转换代码\n3. 提高代码复用性\n\n类型擦除：Java 泛型是伪泛型，编译后类型信息被擦除。List<String> 编译后变成 List（原始类型）。",
-    "tags": "泛型",
-    "sort_order": 5
-  },
-  {
-    "id": "java-basics-6",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java 创建对象的方式有哪些？",
-    "answer": "1. new 关键字：最常用\n2. 反射：Class.newInstance()、Constructor.newInstance()\n3. clone()：实现 Cloneable 接口\n4. 反序列化：ObjectInputStream.readObject()\n5. Unsafe 类：直接分配内存（不调用构造函数）",
-    "tags": "反射",
-    "sort_order": 6
-  },
-  {
-    "id": "java-basics-7",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java 接口和抽象类的区别？",
-    "answer": "接口：变量只能 public static final，JDK8 前方法全抽象，无构造，可多实现\n抽象类：可任意变量，可有具体方法，有构造，只能单继承\n\n使用场景：接口定义能力（行为），抽象类用于代码复用",
-    "tags": "接口",
-    "sort_order": 7
-  },
-  {
-    "id": "java-basics-8",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java equals() 和 hashCode() 的关系？",
-    "answer": "规定：\n- equals() 相等，hashCode() 必须相等\n- hashCode() 相等，equals() 不一定相等\n\n重写原则：重写 equals() 必须重写 hashCode()，使用相同的属性计算",
-    "tags": "equals,hashCode",
-    "sort_order": 8
-  },
-  {
-    "id": "java-basics-9",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java IO 流的分类和常用类？",
-    "answer": "按方向：输入流、输出流\n按类型：字节流、字符流\n按功能：节点流、处理流\n\n常用类：\n- 字节流：FileInputStream、BufferedInputStream\n- 字符流：FileReader、BufferedReader\n- 对象流：ObjectInputStream",
-    "tags": "IO",
-    "sort_order": 9
-  },
-  {
-    "id": "java-basics-10",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java NIO 和 BIO 的区别？",
-    "answer": "BIO：同步阻塞，一个连接一个线程，适合连接数少的场景\nNIO：同步非阻塞，多路复用，核心是 Channel、Buffer、Selector，适合连接数多的场景\nAIO：异步非阻塞，回调机制，适合连接数多且连接长的场景",
-    "tags": "IO,NIO",
-    "sort_order": 10
-  },
-  {
-    "id": "java-basics-11",
-    "category": "java-basics",
-    "level": 0,
-    "parent_id": null,
-    "title": "Java 8 新特性有哪些？",
-    "answer": "1. Lambda 表达式：简洁的函数式写法\n2. 函数式接口：@FunctionalInterface\n3. Stream API：流式数据处理\n4. Optional 类：优雅处理空指针\n5. 默认方法：接口可以有默认实现\n6. 方法引用：ClassName::methodName\n7. 新的日期 API：LocalDate、LocalDateTime",
-    "tags": "Java8",
-    "sort_order": 11
   }
 ]
