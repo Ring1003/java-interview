@@ -38,7 +38,8 @@ export type Category =
   | 'mysql'
   | 'redis'
   | 'algorithm'
-  | 'distributed';
+  | 'distributed'
+  | 'ai';
 
 export interface CategoryInfo {
   id: Category;
@@ -95,5 +96,11 @@ export const CATEGORIES: CategoryInfo[] = [
     name: '分布式',
     icon: '🌐',
     description: '消息队列、微服务、分布式事务、CAP'
+  },
+  {
+    id: 'ai',
+    name: 'AI',
+    icon: '🤖',
+    description: '大模型、Prompt工程、RAG、AI应用开发'
   }
 ];
