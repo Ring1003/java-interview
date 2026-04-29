@@ -1,19 +1,9 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { Question, QuestionTree, Progress, ProgressStats, Category } from '../types';
 import { buildQuestionTree } from '../utils/tree';
 import { getDeviceId } from '../utils/device';
-
-// 题库数据
-import javaBasicsData from '../data/java-basics.json';
-import concurrencyData from '../data/concurrency.json';
-import jvmData from '../data/jvm.json';
-import jvmCompleteData from '../data/jvm_complete.json';
-import springData from '../data/spring.json';
-import mysqlData from '../data/mysql.json';
-import redisData from '../data/redis.json';
-import redisBatch1Data from '../data/redis_questions_batch1.json';
-import algorithmData from '../data/algorithm.json';
-import distributedData from '../data/distributed.json';
+import { fetchQuestions, fetchAllQuestionTrees } from '../services/questionApi';
+import { fetchProgress, updateProgress as apiUpdateProgress, fetchProgressStats } from '../services/progressApi';
 
 interface AppContextType {
   questions: Question[];
@@ -21,6 +11,7 @@ interface AppContextType {
   progress: Record<string, 'unread' | 'mastered' | 'reviewing'>;
   favorites: Set<string>;
   isDarkMode: boolean;
+  isLoading: boolean;
   stats: ProgressStats;
   categoryStats: Record<Category, ProgressStats>;
   updateProgress: (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => void;
@@ -32,35 +23,9 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
-// 合并所有题库数据并去重
-function loadAllQuestions(): Question[] {
-  const allData = [
-    ...javaBasicsData,
-    ...concurrencyData,
-    ...jvmData,
-    ...jvmCompleteData,
-    ...springData,
-    ...mysqlData,
-    ...redisData,
-    ...redisBatch1Data,
-    ...algorithmData,
-    ...distributedData,
-  ] as Question[];
-
-  // 去重
-  const uniqueMap = new Map<string, Question>();
-  allData.forEach(q => {
-    uniqueMap.set(q.id, q);
-  });
-
-  return Array.from(uniqueMap.values());
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [questions] = useState<Question[]>(() => loadAllQuestions());
-  const [questionTrees] = useState<QuestionTree[]>(() => 
-    buildQuestionTree(questions)
-  );
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionTrees, setQuestionTrees] = useState<QuestionTree[]>([]);
   const [progress, setProgress] = useState<Record<string, 'unread' | 'mastered' | 'reviewing'>>(() => {
     const saved = localStorage.getItem('java-interview-progress');
     return saved ? JSON.parse(saved) : {};
@@ -73,8 +38,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('java-interview-dark-mode');
     return saved === 'true';
   });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 保存到 localStorage
+  // Load questions from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch all questions from API
+        const categories: Category[] = ['java-basics', 'concurrency', 'jvm', 'spring', 'mysql', 'redis', 'algorithm', 'distributed'];
+        const results = await Promise.all(
+          categories.map(cat => fetchQuestions(cat).catch(() => []))
+        );
+        const allQuestions = results.flat();
+        
+        // Deduplicate
+        const uniqueMap = new Map<string, Question>();
+        allQuestions.forEach(q => {
+          uniqueMap.set(q.id, q);
+        });
+        const uniqueQuestions = Array.from(uniqueMap.values());
+        
+        setQuestions(uniqueQuestions);
+        setQuestionTrees(buildQuestionTree(uniqueQuestions));
+        
+        // Also try to fetch progress from API
+        const deviceId = getDeviceId();
+        try {
+          const apiProgress = await fetchProgress(deviceId);
+          // Merge with local progress
+          const mergedProgress = { ...progress, ...apiProgress };
+          setProgress(mergedProgress);
+          localStorage.setItem('java-interview-progress', JSON.stringify(mergedProgress));
+        } catch {
+          // Use local progress if API fails
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  // Save to localStorage
   useEffect(() => {
     localStorage.setItem('java-interview-progress', JSON.stringify(progress));
   }, [progress]);
@@ -92,7 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [isDarkMode]);
 
-  // 计算总体统计
+  // Calculate overall stats
   const stats: ProgressStats = {
     total: questions.length,
     mastered: Object.values(progress).filter(s => s === 'mastered').length,
@@ -100,7 +111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     unread: questions.length - Object.keys(progress).length,
   };
 
-  // 计算分类统计
+  // Calculate category stats
   const categoryStats: Record<Category, ProgressStats> = {} as Record<Category, ProgressStats>;
   const categories: Category[] = ['java-basics', 'concurrency', 'jvm', 'spring', 'mysql', 'redis', 'algorithm', 'distributed'];
   
@@ -115,12 +126,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   });
 
-  const updateProgress = (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => {
+  const updateProgress = useCallback(async (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => {
+    // Update local state first
     setProgress(prev => ({
       ...prev,
       [questionId]: status,
     }));
-  };
+    
+    // Sync with API (non-blocking)
+    try {
+      await apiUpdateProgress(questionId, status);
+    } catch {
+      // Silent fail, local storage will sync later
+    }
+  }, []);
 
   const toggleFavorite = (questionId: string) => {
     setFavorites(prev => {
@@ -149,7 +168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const lowerQuery = query.toLowerCase();
       const matchingIds = new Set<string>();
       
-      // 递归搜索函数
+      // Recursive search
       const searchInTree = (trees: QuestionTree[]): QuestionTree[] => {
         return trees.filter(tree => {
           const matches = 
@@ -162,7 +181,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return true;
           }
           
-          // 搜索子节点
           if (tree.children && tree.children.length > 0) {
             const matchingChildren = searchInTree(tree.children);
             if (matchingChildren.length > 0) {
@@ -186,7 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ? questionTrees.filter(q => q.category === category)
       : questionTrees;
     
-    // 只选择顶层问题（level === 0）
+    // Only select top-level questions
     pool = pool.filter(q => q.level === 0);
     
     // Fisher-Yates shuffle
@@ -206,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       progress,
       favorites,
       isDarkMode,
+      isLoading,
       stats,
       categoryStats,
       updateProgress,
