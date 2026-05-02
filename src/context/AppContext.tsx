@@ -1,128 +1,175 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import type { Question, QuestionTree, ProgressStats, Category } from '../types';
-import { buildQuestionTree } from '../utils/tree';
+import { fetchRootQuestions, fetchChildQuestions } from '../services/questionApi';
 import { getDeviceId } from '../utils/device';
-import { fetchQuestions, fetchAllQuestionTrees } from '../services/questionApi';
 import { fetchProgress, updateProgress as apiUpdateProgress } from '../services/progressApi';
 
-const ALL_CATEGORIES: Category[] = ['java-basics', 'concurrency', 'jvm', 'spring', 'mysql', 'redis', 'algorithm', 'distributed', 'ai'];
-
 interface AppContextType {
-  questions: Question[];
-  questionTrees: QuestionTree[];
+  /** Root-level question trees for current category (with children loaded on demand) */
+  rootQuestions: QuestionTree[];
+  /** Total count of root questions in current category */
+  rootTotal: number;
+  /** Whether more root questions exist */
+  hasMoreRoots: boolean;
+  /** Whether initial data is loading */
+  isLoading: boolean;
+  /** Load more root questions */
+  loadMoreRoots: () => Promise<void>;
+  /** Load children for a specific root question */
+  loadChildren: (rootId: string) => Promise<void>;
   progress: Record<string, 'unread' | 'mastered' | 'reviewing'>;
   favorites: Set<string>;
   isDarkMode: boolean;
-  isLoading: boolean;
   stats: ProgressStats;
-  categoryStats: Record<Category, ProgressStats>;
   updateProgress: (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => void;
   toggleFavorite: (questionId: string) => void;
   toggleDarkMode: () => void;
-  searchQuestions: (query: string, category?: Category) => QuestionTree[];
-  getRandomQuestions: (count: number, category?: Category) => QuestionTree[];
+  searchQuestions: (query: string) => QuestionTree[];
+  getRandomQuestions: (count: number) => QuestionTree[];
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [questionTrees, setQuestionTrees] = useState<QuestionTree[]>([]);
+export function AppProvider({ children, activeCategory }: { children: ReactNode; activeCategory: Category }) {
+  const [rootQuestions, setRootQuestions] = useState<QuestionTree[]>([]);
+  const [rootTotal, setRootTotal] = useState(0);
+  const [hasMoreRoots, setHasMoreRoots] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadedChildren, setLoadedChildren] = useState<Set<string>>(new Set());
+  
   const [progress, setProgress] = useState<Record<string, 'unread' | 'mastered' | 'reviewing'>>(() => {
-    const saved = localStorage.getItem('java-interview-progress');
-    return saved ? JSON.parse(saved) : {};
+    try { return JSON.parse(localStorage.getItem('java-interview-progress') || '{}'); } catch { return {}; }
   });
   const [favorites, setFavorites] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('java-interview-favorites');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    try { return new Set(JSON.parse(localStorage.getItem('java-interview-favorites') || '[]')); } catch { return new Set(); }
   });
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('java-interview-dark-mode');
-    return saved === 'true';
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadedCategories, setLoadedCategories] = useState<Set<string>>(new Set());
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('java-interview-dark-mode') === 'true');
 
-  // Load questions per category (lazy loading)
+  // Load root questions when category changes
   useEffect(() => {
-    const loadData = async () => {
+    let cancelled = false;
+    
+    const load = async () => {
+      setIsLoading(true);
+      setLoadedChildren(new Set());
       try {
-        setIsLoading(true);
-        
-        // Fetch all categories in parallel
-        const results = await Promise.all(
-          ALL_CATEGORIES.map(cat => fetchQuestions(cat).catch(() => [] as Question[]))
-        );
-        const allQuestions = results.flat();
-        
-        // Deduplicate by id
-        const uniqueMap = new Map<string, Question>();
-        allQuestions.forEach(q => uniqueMap.set(q.id, q));
-        const uniqueQuestions = Array.from(uniqueMap.values());
-        
-        setQuestions(uniqueQuestions);
-        setQuestionTrees(buildQuestionTree(uniqueQuestions));
-        setLoadedCategories(new Set(ALL_CATEGORIES));
-        
-        // Sync progress from API
-        const deviceId = getDeviceId();
-        try {
-          const apiProgress = await fetchProgress(deviceId);
-          const mergedProgress = { ...progress, ...apiProgress };
-          setProgress(mergedProgress);
-          localStorage.setItem('java-interview-progress', JSON.stringify(mergedProgress));
-        } catch {
-          // Use local progress
+        const { results, total, hasMore } = await fetchRootQuestions(activeCategory, 50, 0);
+        if (cancelled) return;
+        setRootQuestions(results.map(q => ({ ...q, children: [] as QuestionTree[] })));
+        setRootTotal(total);
+        setHasMoreRoots(hasMore);
+      } catch (err) {
+        console.error('Failed to load questions:', err);
+        if (!cancelled) {
+          setRootQuestions([]);
+          setRootTotal(0);
+          setHasMoreRoots(false);
         }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        setIsLoading(false);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     };
     
-    loadData();
-  }, []);
+    load();
+    
+    // Sync progress from API on first load
+    const deviceId = getDeviceId();
+    fetchProgress(deviceId).then(apiProgress => {
+      if (cancelled) return;
+      setProgress(prev => {
+        const merged = { ...prev, ...apiProgress };
+        localStorage.setItem('java-interview-progress', JSON.stringify(merged));
+        return merged;
+      });
+    }).catch(() => {});
+    
+    return () => { cancelled = true; };
+  }, [activeCategory]);
 
-  // Save to localStorage
+  // Persist progress
   useEffect(() => {
     localStorage.setItem('java-interview-progress', JSON.stringify(progress));
   }, [progress]);
-
   useEffect(() => {
-    localStorage.setItem('java-interview-favorites', JSON.stringify(Array.from(favorites)));
+    localStorage.setItem('java-interview-favorites', JSON.stringify([...favorites]));
   }, [favorites]);
-
   useEffect(() => {
-    localStorage.setItem('java-interview-dark-mode', isDarkMode.toString());
-    if (isDarkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    localStorage.setItem('java-interview-dark-mode', String(isDarkMode));
+    document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
-  // Overall stats
+  // Load more root questions
+  const loadMoreRoots = useCallback(async () => {
+    if (!hasMoreRoots) return;
+    const { results, hasMore } = await fetchRootQuestions(activeCategory, 50, rootQuestions.length);
+    setRootQuestions(prev => [
+      ...prev,
+      ...results.map(q => ({ ...q, children: [] as QuestionTree[] })),
+    ]);
+    setHasMoreRoots(hasMore);
+  }, [hasMoreRoots, activeCategory, rootQuestions.length]);
+
+  // Load children for a specific root question (recursively, all levels)
+  const loadChildren = useCallback(async (rootId: string) => {
+    if (loadedChildren.has(rootId)) return;
+    
+    setLoadedChildren(prev => new Set(prev).add(rootId));
+    
+    try {
+      // Fetch all descendants recursively
+      const allQuestions: Question[] = [];
+      const queue = [rootId];
+      
+      while (queue.length > 0) {
+        const parentId = queue.shift()!;
+        const children = await fetchChildQuestions(parentId);
+        allQuestions.push(...children);
+        children.forEach(c => queue.push(c.id));
+      }
+      
+      // Build tree
+      const questionMap = new Map<string, QuestionTree>();
+      allQuestions.forEach(q => questionMap.set(q.id, { ...q, children: [] }));
+      
+      // Attach children to parents
+      allQuestions.forEach(q => {
+        if (q.parent_id && questionMap.has(q.parent_id)) {
+          questionMap.get(q.parent_id)!.children.push(questionMap.get(q.id)!);
+        }
+      });
+      
+      // Sort children
+      questionMap.forEach(node => {
+        node.children.sort((a, b) => a.sort_order - b.sort_order);
+      });
+      
+      // Find direct children of root
+      const directChildren = allQuestions
+        .filter(q => q.parent_id === rootId)
+        .map(q => questionMap.get(q.id)!)
+        .sort((a, b) => a.sort_order - b.sort_order);
+      
+      // Update the root question's children
+      setRootQuestions(prev => prev.map(rq => 
+        rq.id === rootId ? { ...rq, children: directChildren } : rq
+      ));
+    } catch (err) {
+      console.error('Failed to load children for', rootId, err);
+      setLoadedChildren(prev => {
+        const next = new Set(prev);
+        next.delete(rootId);
+        return next;
+      });
+    }
+  }, [loadedChildren]);
+
+  // Stats
   const stats: ProgressStats = useMemo(() => ({
-    total: questions.length,
+    total: rootTotal,
     mastered: Object.values(progress).filter(s => s === 'mastered').length,
     reviewing: Object.values(progress).filter(s => s === 'reviewing').length,
-    unread: questions.length - Object.keys(progress).filter(id => questions.some(q => q.id === id)).length,
-  }), [questions, progress]);
-
-  // Per-category stats
-  const categoryStats: Record<Category, ProgressStats> = useMemo(() => {
-    const result = {} as Record<Category, ProgressStats>;
-    ALL_CATEGORIES.forEach(cat => {
-      const catQuestions = questions.filter(q => q.category === cat);
-      const catIds = new Set(catQuestions.map(q => q.id));
-      result[cat] = {
-        total: catQuestions.length,
-        mastered: Object.entries(progress).filter(([id, s]) => catIds.has(id) && s === 'mastered').length,
-        reviewing: Object.entries(progress).filter(([id, s]) => catIds.has(id) && s === 'reviewing').length,
-        unread: catQuestions.length - Object.keys(progress).filter(id => catIds.has(id)).length,
-      };
-    });
-    return result;
-  }, [questions, progress]);
+    unread: rootTotal - Object.keys(progress).length,
+  }), [rootTotal, progress]);
 
   const updateProgress = useCallback(async (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => {
     setProgress(prev => ({ ...prev, [questionId]: status }));
@@ -132,48 +179,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleFavorite = useCallback((questionId: string) => {
     setFavorites(prev => {
       const next = new Set(prev);
-      if (next.has(questionId)) next.delete(questionId);
-      else next.add(questionId);
+      if (next.has(questionId)) next.delete(questionId); else next.add(questionId);
       return next;
     });
   }, []);
 
   const toggleDarkMode = useCallback(() => setIsDarkMode(p => !p), []);
 
-  const searchQuestions = useCallback((query: string, category?: Category): QuestionTree[] => {
-    let filtered = questionTrees;
-    if (category) filtered = filtered.filter(q => q.category === category);
-    if (query) {
-      const lq = query.toLowerCase();
-      const match = (trees: QuestionTree[]): QuestionTree[] =>
-        trees.filter(t => {
-          if (t.title.toLowerCase().includes(lq) || t.answer.toLowerCase().includes(lq) || (t.tags && t.tags.toLowerCase().includes(lq))) return true;
-          if (t.children?.length) {
-            const mc = match(t.children);
-            if (mc.length) { t.children = mc; return true; }
-          }
-          return false;
-        });
-      return match(filtered);
-    }
-    return filtered;
-  }, [questionTrees]);
+  const searchQuestions = useCallback((query: string): QuestionTree[] => {
+    if (!query) return rootQuestions;
+    const lq = query.toLowerCase();
+    return rootQuestions.filter(q => q.title.toLowerCase().includes(lq));
+  }, [rootQuestions]);
 
-  const getRandomQuestions = useCallback((count: number, category?: Category): QuestionTree[] => {
-    let pool = category ? questionTrees.filter(q => q.category === category) : questionTrees;
-    pool = pool.filter(q => q.level === 0);
-    const shuffled = [...pool];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+  const getRandomQuestions = useCallback((count: number): QuestionTree[] => {
+    const shuffled = [...rootQuestions].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);
-  }, [questionTrees]);
+  }, [rootQuestions]);
 
   return (
     <AppContext.Provider value={{
-      questions, questionTrees, progress, favorites, isDarkMode, isLoading,
-      stats, categoryStats, updateProgress, toggleFavorite, toggleDarkMode,
+      rootQuestions, rootTotal, hasMoreRoots, isLoading,
+      loadMoreRoots, loadChildren,
+      progress, favorites, isDarkMode, stats,
+      updateProgress, toggleFavorite, toggleDarkMode,
       searchQuestions, getRandomQuestions,
     }}>
       {children}
