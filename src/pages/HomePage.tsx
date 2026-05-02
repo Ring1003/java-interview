@@ -140,6 +140,8 @@ export function HomePage() {
                 isFavorite={favorites.has(question.id)}
                 onStatusChange={handleStatusChange}
                 onFavoriteClick={handleFavoriteClick}
+                progress={progress}
+                favorites={favorites}
               />
             ))}
             <div ref={loadMoreRef} className="h-4" />
@@ -187,6 +189,8 @@ export function HomePage() {
                 isFavorite={favorites.has(question.id)}
                 onStatusChange={handleStatusChange}
                 onFavoriteClick={handleFavoriteClick}
+                progress={progress}
+                favorites={favorites}
               />
             ))}
             <div ref={loadMoreRef} className="h-4" />
