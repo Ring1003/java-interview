@@ -1,8 +1,8 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 
 /**
  * Progressive rendering — render items in batches for large lists.
- * Much simpler and more reliable than full virtual scrolling.
+ * Resets visible count when items change (e.g., category switch).
  */
 export function ProgressiveList({
   items,
@@ -12,18 +12,27 @@ export function ProgressiveList({
 }: {
   items: any[];
   renderFn: (item: any, index: number) => ReactNode;
-  batchSize?: number;
+  batchSize?: string | number;
   className?: string;
 }) {
-  const [visibleCount, setVisibleCount] = useState(batchSize);
+  const batchSizeNum = typeof batchSize === 'number' ? batchSize : 20;
+  const [visibleCount, setVisibleCount] = useState(batchSizeNum);
 
-  // Reset when items change
+  // Reset when items reference changes
+  useEffect(() => {
+    setVisibleCount(batchSizeNum);
+  }, [items, batchSizeNum]);
+
   const handleShowMore = useCallback(() => {
-    setVisibleCount(prev => Math.min(prev + batchSize, items.length));
-  }, [batchSize, items.length]);
+    setVisibleCount(prev => Math.min(prev + batchSizeNum, items.length));
+  }, [batchSizeNum, items.length]);
 
-  // Reset visible count when items change
   const effectiveCount = Math.min(visibleCount, items.length);
+
+  // Don't use progressive list for small lists
+  if (items.length <= batchSizeNum) {
+    return <div className={className}><div className="space-y-4">{items.map((item, idx) => renderFn(item, idx))}</div></div>;
+  }
 
   return (
     <div className={className}>
