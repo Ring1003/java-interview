@@ -1,42 +1,42 @@
 {
   "java-basics": {
-    "roots": 1,
-    "total": 5,
-    "size": "9.1KB"
+    "roots": 20,
+    "total": 31,
+    "size": "52.5KB"
   },
   "concurrency": {
-    "roots": 10,
-    "total": 14,
-    "size": "5.7KB"
+    "roots": 20,
+    "total": 25,
+    "size": "23.7KB"
   },
   "jvm": {
-    "roots": 10,
-    "total": 14,
-    "size": "5.0KB"
+    "roots": 18,
+    "total": 22,
+    "size": "17.9KB"
   },
   "spring": {
-    "roots": 55,
-    "total": 683,
-    "size": "2030.8KB"
+    "roots": 60,
+    "total": 688,
+    "size": "2039.9KB"
   },
   "mysql": {
-    "roots": 74,
-    "total": 1006,
-    "size": "205.8KB"
+    "roots": 80,
+    "total": 1012,
+    "size": "214.5KB"
   },
   "redis": {
-    "roots": 10,
-    "total": 11,
-    "size": "4.1KB"
+    "roots": 19,
+    "total": 20,
+    "size": "17.6KB"
   },
   "algorithm": {
-    "roots": 62,
-    "total": 636,
-    "size": "322.4KB"
+    "roots": 69,
+    "total": 643,
+    "size": "330.5KB"
   },
   "distributed": {
-    "roots": 244,
-    "total": 2196,
-    "size": "6809.6KB"
+    "roots": 251,
+    "total": 2203,
+    "size": "6813.2KB"
   }
 }

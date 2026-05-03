@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import type { QuestionTree } from '../types';
 import { renderMarkdown } from '../utils/markdown';
 
@@ -123,7 +123,7 @@ interface QuestionCardProps {
   onLoadChildren?: (rootId: string) => Promise<void>;
 }
 
-export function QuestionCard({
+export const QuestionCard = React.memo(function QuestionCard({
   question,
   onStatusChange,
   onFavoriteClick,
@@ -214,4 +214,5 @@ export function QuestionCard({
       </div>
     </div>
   );
-}
+});
+
