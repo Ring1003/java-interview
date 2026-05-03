@@ -1,21 +1,15 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import type { QuestionTree, ProgressStats, Category } from '../types';
 import { loadCategoryData, preloadCategory } from '../services/questionData';
 import { getDeviceId } from '../utils/device';
 import { fetchProgress, updateProgress as apiUpdateProgress } from '../services/progressApi';
 
 interface AppContextType {
-  /** Root-level question trees for current category (with children pre-loaded) */
   rootQuestions: QuestionTree[];
-  /** Total count of questions in current category */
   rootTotal: number;
-  /** Whether more root questions exist (always false now, all loaded at once) */
   hasMoreRoots: boolean;
-  /** Whether initial data is loading */
   isLoading: boolean;
-  /** Load more root questions (no-op now) */
   loadMoreRoots: () => Promise<void>;
-  /** Load children for a specific root question (no-op, already loaded) */
   loadChildren: (rootId: string) => Promise<void>;
   progress: Record<string, 'unread' | 'mastered' | 'reviewing'>;
   favorites: Set<string>;
@@ -30,6 +24,18 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
+/** Debounce a function */
+function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+  let timer: ReturnType<typeof setTimeout>;
+  const wrapped = ((...args: any[]) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  }) as T;
+  return wrapped;
+}
+
+const ALL_CATEGORIES: Category[] = ['java-basics', 'concurrency', 'jvm', 'spring', 'mysql', 'redis', 'algorithm', 'distributed'];
+
 export function AppProvider({ children, activeCategory }: { children: ReactNode; activeCategory: Category }) {
   const [rootQuestions, setRootQuestions] = useState<QuestionTree[]>([]);
   const [rootTotal, setRootTotal] = useState(0);
@@ -43,7 +49,7 @@ export function AppProvider({ children, activeCategory }: { children: ReactNode;
   });
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('java-interview-dark-mode') === 'true');
 
-  // Load category data from local JSON when category changes
+  // Load category data when category changes
   useEffect(() => {
     let cancelled = false;
     
@@ -66,16 +72,24 @@ export function AppProvider({ children, activeCategory }: { children: ReactNode;
     };
     
     load();
-    
     return () => { cancelled = true; };
   }, [activeCategory]);
 
-  // Preload adjacent categories on mount
+  // Preload other categories during idle time
   useEffect(() => {
-    const categories: Category[] = ['java-basics', 'concurrency', 'jvm', 'spring', 'mysql', 'redis', 'algorithm', 'distributed'];
-    const idx = categories.indexOf(activeCategory);
-    if (idx > 0) preloadCategory(categories[idx - 1]);
-    if (idx < categories.length - 1) preloadCategory(categories[idx + 1]);
+    if (typeof window === 'undefined' || !('requestIdleCallback' in window)) return;
+    
+    const categoriesToPreload = ALL_CATEGORIES.filter(c => c !== activeCategory);
+    let index = 0;
+    
+    const preloadNext = () => {
+      if (index >= categoriesToPreload.length) return;
+      const cat = categoriesToPreload[index++];
+      preloadCategory(cat);
+      (window as any).requestIdleCallback(preloadNext, { timeout: 5000 });
+    };
+    
+    (window as any).requestIdleCallback(preloadNext, { timeout: 2000 });
   }, [activeCategory]);
 
   // Background sync progress from API (non-blocking)
@@ -90,23 +104,36 @@ export function AppProvider({ children, activeCategory }: { children: ReactNode;
     }).catch(() => {});
   }, []);
 
-  // Persist progress
+  // Debounced localStorage persistence for progress
+  const debouncedSaveProgress = useRef(
+    debounce((p: Record<string, 'unread' | 'mastered' | 'reviewing'>) => {
+      localStorage.setItem('java-interview-progress', JSON.stringify(p));
+    }, 500)
+  ).current;
+
   useEffect(() => {
-    localStorage.setItem('java-interview-progress', JSON.stringify(progress));
-  }, [progress]);
+    debouncedSaveProgress(progress);
+  }, [progress, debouncedSaveProgress]);
+
+  // Persist favorites (debounced)
+  const debouncedSaveFavorites = useRef(
+    debounce((f: Set<string>) => {
+      localStorage.setItem('java-interview-favorites', JSON.stringify([...f]));
+    }, 500)
+  ).current;
+
   useEffect(() => {
-    localStorage.setItem('java-interview-favorites', JSON.stringify([...favorites]));
-  }, [favorites]);
+    debouncedSaveFavorites(favorites);
+  }, [favorites, debouncedSaveFavorites]);
+
   useEffect(() => {
     localStorage.setItem('java-interview-dark-mode', String(isDarkMode));
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
-  // No-op: all data is pre-loaded in tree structure
   const loadMoreRoots = useCallback(async () => {}, []);
   const loadChildren = useCallback(async () => {}, []);
 
-  // Stats
   const stats: ProgressStats = useMemo(() => ({
     total: rootTotal,
     mastered: Object.values(progress).filter(s => s === 'mastered').length,
@@ -114,10 +141,17 @@ export function AppProvider({ children, activeCategory }: { children: ReactNode;
     unread: rootTotal - Object.keys(progress).length,
   }), [rootTotal, progress]);
 
-  const updateProgress = useCallback(async (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => {
+  // Debounced API sync for progress updates
+  const debouncedApiSync = useRef(
+    debounce(async (questionId: string, status: 'unread' | 'mastered' | 'reviewing') => {
+      try { await apiUpdateProgress(questionId, status); } catch { /* silent */ }
+    }, 1000)
+  ).current;
+
+  const updateProgress = useCallback((questionId: string, status: 'unread' | 'mastered' | 'reviewing') => {
     setProgress(prev => ({ ...prev, [questionId]: status }));
-    try { await apiUpdateProgress(questionId, status); } catch { /* silent */ }
-  }, []);
+    debouncedApiSync(questionId, status);
+  }, [debouncedApiSync]);
 
   const toggleFavorite = useCallback((questionId: string) => {
     setFavorites(prev => {
