@@ -7,7 +7,7 @@ import type { QuestionTree, Category } from '../types';
 
 function QuizContent({ category }: { category?: Category }) {
   const navigate = useNavigate();
-  const { rootQuestions, progress, isDarkMode, toggleDarkMode, updateProgress, toggleFavorite, favorites, loadChildren } = useApp();
+  const { rootQuestions, progress, isDarkMode, toggleDarkMode, updateProgress, toggleFavorite, favorites } = useApp();
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -109,7 +109,6 @@ function QuizContent({ category }: { category?: Category }) {
             onFavoriteClick={toggleFavorite}
             progress={progress}
             favorites={favorites}
-            onLoadChildren={loadChildren}
           />
         )}
         <div className="mt-6 flex justify-center gap-4">

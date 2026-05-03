@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { CategoryTabs, CategoryBottomTabs } from '../components/CategoryTabs';
 import { QuestionCard } from '../components/QuestionCard';
 import { SearchBar } from '../components/SearchBar';
@@ -12,8 +12,7 @@ import { CATEGORIES } from '../types';
 
 function HomeContent({ activeCategory, onCategoryChange }: { activeCategory: Category; onCategoryChange: (c: Category) => void }) {
   const { 
-    rootQuestions, rootTotal, hasMoreRoots, isLoading,
-    loadMoreRoots, loadChildren,
+    rootQuestions, rootTotal, isLoading,
     progress, favorites, isDarkMode, stats,
     updateProgress, toggleFavorite, toggleDarkMode,
   } = useApp();
@@ -43,20 +42,6 @@ function HomeContent({ activeCategory, onCategoryChange }: { activeCategory: Cat
     }
     return result;
   })();
-
-  // Infinite scroll
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const handleLoadMore = useCallback(() => { loadMoreRoots(); }, [loadMoreRoots]);
-
-  useEffect(() => {
-    if (!loadMoreRef.current || !hasMoreRoots) return;
-    const observer = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) handleLoadMore(); },
-      { rootMargin: '400px' }
-    );
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [handleLoadMore, hasMoreRoots]);
 
   const categoryInfo = CATEGORIES.find(c => c.id === activeCategory);
   const title = showFavoritesOnly ? '⭐ 收藏' : `${categoryInfo?.icon || ''} ${categoryInfo?.name || ''} 题目`;
@@ -89,7 +74,7 @@ function HomeContent({ activeCategory, onCategoryChange }: { activeCategory: Cat
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{title}</h2>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              共 {rootTotal} 道{filteredQuestions.length !== rootQuestions.length ? ` · 显示 ${filteredQuestions.length} 道` : ''}
+              共 {rootTotal} 道题{filteredQuestions.length !== rootQuestions.length ? ` · 显示 ${filteredQuestions.length} 道` : ''}
             </p>
           </div>
           {isLoading ? (
@@ -101,11 +86,6 @@ function HomeContent({ activeCategory, onCategoryChange }: { activeCategory: Cat
               favorites={favorites}
               onStatusChange={updateProgress}
               onFavoriteClick={toggleFavorite}
-              onLoadChildren={loadChildren}
-              hasMore={hasMoreRoots}
-              onLoadMore={loadMoreRoots}
-              remaining={rootTotal - rootQuestions.length}
-              loadMoreRef={loadMoreRef}
               emptyMessage={searchQuery ? '没有找到匹配的题目' : showFavoritesOnly ? '还没有收藏' : '暂无题目'}
             />
           )}
@@ -138,11 +118,6 @@ function HomeContent({ activeCategory, onCategoryChange }: { activeCategory: Cat
               favorites={favorites}
               onStatusChange={updateProgress}
               onFavoriteClick={toggleFavorite}
-              onLoadChildren={loadChildren}
-              hasMore={hasMoreRoots}
-              onLoadMore={loadMoreRoots}
-              remaining={rootTotal - rootQuestions.length}
-              loadMoreRef={loadMoreRef}
               emptyMessage="暂无题目"
             />
           )}
@@ -165,19 +140,13 @@ function LoadingSpinner() {
 }
 
 function QuestionList({
-  questions, progress, favorites, onStatusChange, onFavoriteClick, onLoadChildren,
-  hasMore, onLoadMore, remaining, loadMoreRef, emptyMessage,
+  questions, progress, favorites, onStatusChange, onFavoriteClick, emptyMessage,
 }: {
   questions: any[];
   progress: Record<string, any>;
   favorites: Set<string>;
   onStatusChange: (id: string, status: any) => void;
   onFavoriteClick: (id: string) => void;
-  onLoadChildren: (id: string) => Promise<void>;
-  hasMore: boolean;
-  onLoadMore: () => void;
-  remaining: number;
-  loadMoreRef: React.RefObject<HTMLDivElement | null>;
   emptyMessage: string;
 }) {
   return (
@@ -192,17 +161,8 @@ function QuestionList({
           onFavoriteClick={onFavoriteClick}
           progress={progress}
           favorites={favorites}
-          onLoadChildren={onLoadChildren}
         />
       ))}
-      <div ref={loadMoreRef} className="h-4" />
-      {hasMore && (
-        <div className="text-center py-4">
-          <button onClick={onLoadMore} className="px-6 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">
-            加载更多 ({remaining} 剩余)
-          </button>
-        </div>
-      )}
       {questions.length === 0 && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">{emptyMessage}</div>
       )}

@@ -148,21 +148,9 @@ export function QuestionCard({
     reviewing: 'border-yellow-200/60 dark:border-yellow-800/30',
   };
 
-  const handleExpandChildren = useCallback(async () => {
-    if (!hasChildren && onLoadChildren) {
-      // Children not loaded yet — load them
-      setLoadingChildren(true);
-      try {
-        await onLoadChildren(question.id);
-        setChildrenExpanded(true);
-      } catch (err) {
-        console.error('Failed to load children:', err);
-      }
-      setLoadingChildren(false);
-    } else {
-      setChildrenExpanded(!childrenExpanded);
-    }
-  }, [hasChildren, onLoadChildren, question.id, childrenExpanded]);
+  const handleExpandChildren = useCallback(() => {
+    setChildrenExpanded(prev => !prev);
+  }, []);
 
   // Count total descendants
   const totalDescendants = useMemo(() => {
