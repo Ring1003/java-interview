@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CategoryTabs, CategoryBottomTabs } from '../components/CategoryTabs';
 import { QuestionCard } from '../components/QuestionCard';
+import { ProgressiveList } from '../components/ProgressiveList';
 import { SearchBar } from '../components/SearchBar';
 import { ProgressBar } from '../components/ProgressBar';
 import { DarkModeToggle } from '../components/DarkModeToggle';
@@ -149,9 +150,13 @@ function QuestionList({
   onFavoriteClick: (id: string) => void;
   emptyMessage: string;
 }) {
+  if (questions.length === 0) {
+    return <div className="text-center py-12 text-gray-500 dark:text-gray-400">{emptyMessage}</div>;
+  }
   return (
-    <div className="space-y-4">
-      {questions.map((q: any) => (
+    <ProgressiveList
+      items={questions}
+      renderFn={(q: any) => (
         <QuestionCard
           key={q.id}
           question={q}
@@ -162,11 +167,9 @@ function QuestionList({
           progress={progress}
           favorites={favorites}
         />
-      ))}
-      {questions.length === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">{emptyMessage}</div>
       )}
-    </div>
+      batchSize={20}
+    />
   );
 }
 

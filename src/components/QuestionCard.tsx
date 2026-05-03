@@ -24,9 +24,10 @@ function FavButton({ isFavorite, onClick }: { isFavorite: boolean; onClick: () =
   );
 }
 
-/* ─── Markdown answer ─── */
-function AnswerBlock({ answer }: { answer: string }) {
-  const html = useMemo(() => renderMarkdown(answer), [answer]);
+/* ─── Lazy Markdown answer — only renders when expanded ─── */
+function LazyAnswer({ answer }: { answer: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const html = useMemo(() => expanded ? renderMarkdown(answer) : '', [answer, expanded]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const pre = (e.target as HTMLElement).closest('pre');
@@ -40,16 +41,34 @@ function AnswerBlock({ answer }: { answer: string }) {
     }
   }, []);
 
+  if (!expanded) {
+    return (
+      <div className="px-5 py-4">
+        <button
+          onClick={() => setExpanded(true)}
+          className="text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7"/>
+          </svg>
+          展开答案
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="md-answer text-gray-700 dark:text-gray-300 leading-relaxed text-[15px] [&_p]:mb-2 [&_p]:last:mb-0"
-      onClick={handleClick}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="px-5 py-4">
+      <div
+        className="md-answer text-gray-700 dark:text-gray-300 leading-relaxed text-[15px] [&_p]:mb-2 [&_p]:last:mb-0"
+        onClick={handleClick}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
   );
 }
 
-/* ─── Sub-question (recursive, all levels) ─── */
+/* ─── Sub-question (recursive) ─── */
 function SubQuestion({
   question,
   depth,
@@ -66,7 +85,21 @@ function SubQuestion({
   favorites: Set<string>;
 }) {
   const [collapsed, setCollapsed] = useState(depth >= 2);
+  const [answerExpanded, setAnswerExpanded] = useState(depth < 2);
   const hasChildren = question.children && question.children.length > 0;
+  const html = useMemo(() => answerExpanded ? renderMarkdown(question.answer) : '', [question.answer, answerExpanded]);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const pre = (e.target as HTMLElement).closest('pre');
+    if (!pre) return;
+    const code = pre.querySelector('code')?.textContent;
+    if (code) {
+      navigator.clipboard.writeText(code).then(() => {
+        pre.style.outline = '2px solid rgb(59 130 246)';
+        setTimeout(() => { pre.style.outline = ''; }, 600);
+      });
+    }
+  }, []);
 
   const colors = ['border-l-blue-400', 'border-l-purple-400', 'border-l-pink-400', 'border-l-orange-400', 'border-l-teal-400', 'border-l-indigo-400'];
   const borderColor = colors[depth % colors.length];
@@ -98,9 +131,22 @@ function SubQuestion({
       </div>
       {!collapsed && (
         <div className="mt-2">
-          <div className="bg-gray-50/80 dark:bg-gray-800/60 rounded-xl p-4">
-            <AnswerBlock answer={question.answer} />
-          </div>
+          {answerExpanded ? (
+            <div className="bg-gray-50/80 dark:bg-gray-800/60 rounded-xl p-4">
+              <div
+                className="md-answer text-gray-700 dark:text-gray-300 leading-relaxed text-[15px] [&_p]:mb-2 [&_p]:last:mb-0"
+                onClick={handleClick}
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setAnswerExpanded(true)}
+              className="text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 font-medium py-1 transition-colors"
+            >
+              展开答案
+            </button>
+          )}
           {hasChildren && question.children!.map(child => (
             <SubQuestion key={child.id} question={child} depth={depth + 1} onStatusChange={onStatusChange} onFavoriteClick={onFavoriteClick} progress={progress} favorites={favorites} />
           ))}
@@ -119,7 +165,6 @@ interface QuestionCardProps {
   isFavorite?: boolean;
   progress: Record<string, 'unread' | 'mastered' | 'reviewing'>;
   favorites: Set<string>;
-  /** Called when user expands sub-questions for the first time */
   onLoadChildren?: (rootId: string) => Promise<void>;
 }
 
@@ -182,10 +227,8 @@ export const QuestionCard = React.memo(function QuestionCard({
         </div>
       </div>
 
-      {/* Answer — always visible */}
-      <div className="px-5 py-4">
-        <AnswerBlock answer={question.answer} />
-      </div>
+      {/* Answer — lazy rendered on click */}
+      <LazyAnswer answer={question.answer} />
 
       {/* Sub-questions section */}
       <div className="border-t border-gray-100 dark:border-gray-700/50 px-5 pb-4">
@@ -215,4 +258,3 @@ export const QuestionCard = React.memo(function QuestionCard({
     </div>
   );
 });
-
